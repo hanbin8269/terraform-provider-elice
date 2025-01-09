@@ -41,9 +41,6 @@ func (c *Client) CreateInstance(
 		"instance_type_id": InstanceTypeId,
 		"disk":             Disk,
 	})
-	if err != nil {
-		return nil, err
-	}
 
 	req, err := http.NewRequest("POST", fmt.Sprintf("%s/instance", c.HostURL), strings.NewReader(string(rb)))
 	if err != nil {
@@ -62,4 +59,57 @@ func (c *Client) CreateInstance(
 	}
 
 	return &instance, nil
+}
+
+func (c *Client) UpdateInstance(
+	ID string,
+	Title string,
+	Disk int,
+) (string, error) {
+	updateFields := map[string]interface{}{
+		"title": Title,
+		"disk":  Disk,
+	}
+
+	rb, err := json.Marshal(updateFields)
+	if err != nil {
+		return "", err
+	}
+
+	req, err := http.NewRequest("PATCH", fmt.Sprintf("%s/instance/%s", c.HostURL, ID), strings.NewReader(string(rb)))
+	if err != nil {
+		return "", err
+	}
+
+	body, err := c.doRequest(req)
+	if err != nil {
+		return "", err
+	}
+
+	var response map[string]interface{}
+	err = json.Unmarshal(body, &response)
+	if err != nil {
+		return "", err
+	}
+
+	instanceID, ok := response["id"].(string)
+	if !ok {
+		return "", fmt.Errorf("invalid response format")
+	}
+
+	return instanceID, nil
+}
+
+func (c *Client) DeleteInstance(ID string) error {
+	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/instance/%s", c.HostURL, ID), nil)
+	if err != nil {
+		return err
+	}
+
+	_, err = c.doRequest(req)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

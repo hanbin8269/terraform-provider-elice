@@ -1,5 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-
 package provider
 
 import (
@@ -127,8 +125,8 @@ func (r *instanceResource) Read(ctx context.Context, req resource.ReadRequest, r
 	}
 	state.Id = types.StringValue(instance.Id)
 	state.Title = types.StringValue(instance.Title)
-	state.ImageId = types.StringValue(instance.ImageId)
-	state.InstanceTypeId = types.StringValue(instance.InstanceTypeId)
+	state.ImageId = types.StringValue(instance.Image.Id)
+	state.InstanceTypeId = types.StringValue(instance.InstanceType.Id)
 	state.Disk = types.Int64Value(int64(instance.Disk))
 
 	diags = resp.State.Set(ctx, &state)
@@ -139,7 +137,64 @@ func (r *instanceResource) Read(ctx context.Context, req resource.ReadRequest, r
 }
 
 func (r *instanceResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var state instanceResourceModel
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	var plan instanceResourceModel
+	diags = req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	_, err := r.client.UpdateInstance(
+		state.Id.ValueString(),
+		plan.Title.ValueString(),
+		int(plan.Disk.ValueInt64()),
+	)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error updating instance",
+			"Could not update instance, unexpected error: "+err.Error(),
+		)
+		return
+	}
+
+	instance, err := r.client.GetInstance(state.Id.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error Reading EliceCloud Instance",
+			"Could not read EliceCloud instance ID "+state.Id.ValueString()+": "+err.Error(),
+		)
+		return
+	}
+
+	plan.Id = types.StringValue(instance.Id)
+	plan.Title = types.StringValue(instance.Title)
+	plan.ImageId = types.StringValue(instance.Image.Id)
+	plan.InstanceTypeId = types.StringValue(instance.InstanceType.Id)
+	plan.Disk = types.Int64Value(int64(instance.Disk))
+
+	diags = resp.State.Set(ctx, plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 }
 
 func (r *instanceResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state instanceResourceModel
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	r.client.DeleteInstance(state.Id.ValueString())
+
+	resp.State.RemoveResource(ctx)
 }
