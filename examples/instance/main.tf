@@ -1,8 +1,8 @@
 terraform {
-  required_version = ">= 1.1.0"
   required_providers {
     elice = {
-      source = "github.com/elice-dev/elice"
+      source = "elice-dev/elice"
+      version = "0.1.0-alpha"
     }
   }
 }
@@ -15,7 +15,7 @@ provider "elice" {
 
 resource "elice_instance" "example" {
   title            = "ex-instance"
-  image_id         = "65f9e2f7-3c1a-4246-8e84-b70669d4c2fe"
-  instance_type_id = "e4802a59-cca3-4cae-a719-5b3c8442c5d8"
+  image_id         = "c64935ca-563e-4a05-9034-7469213f8204"
+  instance_type_id = "77f3b59a-6cae-49e8-8978-4b92b3e7a060"
   disk             = 128
 }
